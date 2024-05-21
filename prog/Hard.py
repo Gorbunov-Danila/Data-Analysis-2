@@ -1,185 +1,151 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import re
 import json
-import sys
-from jsonschema import validate
-from jsonschema.exceptions import ValidationError
+import os
+from jsonschema import validate, ValidationError
 
-
-def get_train():
+def create_sample_input_file(file_path):
     """
-    Запросить данные.
+    Создает файл с примерным содержимым, если файл не существует.
     """
-    departure_point = input("Пункт отправления поезда? ")
-    number_train = input("Номер поезда? ")
-    time_departure = input("Время отправления? ")
-    destination = input("Пункт назначения? ")
-    return {
-        'departure_point': departure_point,
-        'number_train': number_train,
-        'time_departure': time_departure,
-        'destination': destination,
-    }
-
-
-def display_trains(staff):
-    """
-    Отобразить список поездов.
-    """
-    if staff:
-        line = '+-{}-+-{}-+-{}-+-{}-+-{}-+'.format(
-            '-' * 4,
-            '-' * 30,
-            '-' * 13,
-            '-' * 18,
-            '-' * 14
-        )
-        print(line)
-        print(
-            '| {:^4} | {:^30} | {:^13} | {:^18} | {:^14} |'.format(
-                "№",
-                "Пункт отправления",
-                "Номер поезда",
-                "Время отправления",
-                "Пункт назначения")
-        )
-        print(line)
-
-        for idx, points in enumerate(staff, 1):
-            print(
-                '| {:>4} | {:<30} | {:<13} | {:>18} | {:^14} |'.format(
-                    idx, points.get('departure_point', ''),
-                    points.get('number_train', ''),
-                    points.get('time_departure', ''),
-                    points.get('destination', ''))
-            )
-        print(line)
-    else:
-        print("Список станций пуст.")
-
-
-def select_trains(staff, point_user):
-    """
-    Выбрать нужный поезд.
-    """
-    result = []
-    for train in staff:
-        if point_user.lower() == train['destination'].lower():
-            result.append(train)
-
-    return result
-
-
-def save_trains(file_name, staff):
-    """
-    Сохранить в файл JSON.
-    """
-    with open(file_name, "w", encoding="utf-8") as fout:
-        json.dump(staff, fout, ensure_ascii=False, indent=4)
-
-
-def load_trains(file_name):
-    """
-    Загрузить из файла JSON и валидировать его.
-    """
-    schema = {
-        "type": "array",
-        "items": {
-            "type": "object",
-            "properties": {
-                "departure_point": {"type": "string"},
-                "number_train": {"type": "string"},
-                "time_departure": {"type": "string"},
-                "destination": {"type": "string"},
-            },
-            "required": [
-                "departure_point",
-                "number_train",
-                "time_departure",
-                "destination",
-            ],
-        },
-    }
-
-    with open(file_name, "r", encoding="utf-8") as fin:
-        data = json.load(fin)  # чтение данных из файла
-
     try:
-        # Валидация файла
-        validate(instance=data, schema=schema)
-        print("JSON-файл прошел валидацию.")
-    except ValidationError as e:
-        print(f"Ошибка валидации {e.message}")
-    return data
+        if not os.path.exists(file_path):
+            with open(file_path, 'w', encoding='utf-8') as file:
+                sample_text = ("Это первое предложение. Второе предложение, с запятой. Третье предложение без запятой!")
+                file.write(sample_text)
+            print(f"Файл '{file_path}' создан с примерным содержимым.")
+        else:
+            print(f"Файл '{file_path}' уже существует.")
+    except Exception as e:
+        print(f"Ошибка при создании файла '{file_path}': {e}")
 
+def read_file(file_path):
+    """
+    Считывает текст из файла и возвращает его содержимое.
+    """
+    try:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            content = file.read()
+            print(f"Содержимое файла '{file_path}':\n{content}")
+            return content
+    except FileNotFoundError:
+        print(f"Ошибка: файл '{file_path}' не найден.")
+        return None
+    except Exception as e:
+        print(f"Ошибка при чтении файла '{file_path}': {e}")
+        return None
+
+def split_into_sentences(text):
+    """
+    Разделяет текст на предложения.
+    """
+    try:
+        sentence_endings = re.compile(r'[.!?]')
+        sentences = sentence_endings.split(text)
+        print(f"Разделенные предложения: {sentences}")
+        return [sentence.strip() for sentence in sentences if sentence.strip()]
+    except Exception as e:
+        print(f"Ошибка при разделении текста на предложения: {e}")
+        return []
+
+def filter_sentences(sentences):
+    """
+    Возвращает список предложений, не содержащих запятых.
+    """
+    try:
+        filtered = [sentence for sentence in sentences if ',' not in sentence]
+        print(f"Отфильтрованные предложения (без запятых): {filtered}")
+        return filtered
+    except Exception as e:
+        print(f"Ошибка при фильтрации предложений: {e}")
+        return []
+
+def save_to_json(data, file_path):
+    """
+    Сохраняет данные в файл формата JSON.
+    """
+    try:
+        with open(file_path, 'w', encoding='utf-8') as file:
+            json.dump(data, file, ensure_ascii=False, indent=4)
+        print(f"Данные сохранены в файл '{file_path}'")
+    except Exception as e:
+        print(f"Ошибка при сохранении данных в файл '{file_path}': {e}")
+
+def load_from_json(file_path):
+    """
+    Загружает данные из файла формата JSON.
+    """
+    try:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            data = json.load(file)
+            print(f"Загруженные данные из '{file_path}': {data}")
+            return data
+    except FileNotFoundError:
+        print(f"Ошибка: файл '{file_path}' не найден.")
+        return None
+    except Exception as e:
+        print(f"Ошибка при загрузке данных из файла '{file_path}': {e}")
+        return None
+
+def validate_json(data, schema):
+    """
+    Валидирует данные с помощью схемы JSON Schema.
+    """
+    try:
+        validate(instance=data, schema=schema)
+        print("Данные валидны согласно JSON Schema.")
+        return True
+    except ValidationError as e:
+        print(f"Ошибка валидации данных: {e.message}")
+        return False
 
 def main():
     """
     Главная функция программы.
     """
-    # Список поездов.
-    trains = []
-    # Организовать бесконечный цикл запроса команд.
-    while True:
-        # Запросить команду из терминала.
-        command = input(">>> ").lower()
-        # Выполнить действие в соответствие с командой.
-        if command == "exit":
-            break
+    # Указываем пути к файлам
+    input_file_path = 'input.txt'
+    json_file_path = 'filtered_sentences.json'
 
-        elif command == "add":
-            # Запросить данные о поезде.
-            train = get_train()
-            # Добавить словарь в список.
-            trains.append(train)
-            # Отсортировать список в случае необходимости по времени отправления поезда.
-            if len(trains) > 1:
-                trains.sort(key=lambda item: item.get('time_departure', ''))
+    # Схема для валидации JSON данных
+    schema = {
+        "type": "array",
+        "items": {
+            "type": "string"
+        }
+    }
 
-        elif command == "list":
-            # Отобразить все поезда.
-            display_trains(trains)
+    # Создаем файл с примерным содержимым, если он не существует
+    create_sample_input_file(input_file_path)
 
-        elif command.startswith("select "):
-            # Разбить команду на части для выделения станции.
-            point_command = command.split(maxsplit=1)
-            point_user = point_command[1]
-            # Выбрать поезда с заданным пунктом назначения.
-            selected = select_trains(trains, point_user)
-            # Отобразить выбранные поезда.
-            display_trains(selected)
+    # Считываем текст из файла
+    text = read_file(input_file_path)
+    if text is None:
+        return  # Завершаем программу, если не удалось прочитать файл
 
-        elif command.startswith("save "):
-            # Разбить команду на части для выделения имени файла.
-            parts = command.split(maxsplit=1)
-            # Получить имя файла.
-            file_name = parts[1]
-            # Сохранить данные в файл с заданным именем.
-            save_trains(file_name, trains)
+    # Разделяем текст на предложения
+    sentences = split_into_sentences(text)
 
-        elif command.startswith("load "):
-            # Разбить команду на части для выделения имени файла.
-            parts = command.split(maxsplit=1)
-            # Получить имя файла.
-            file_name = parts[1]
-            # Загрузить данные из файла с заданным именем.
-            trains = load_trains(file_name)
+    # Фильтруем предложения без запятых
+    filtered_sentences = filter_sentences(sentences)
+    
+    # Сохраняем отфильтрованные предложения в JSON-файл
+    save_to_json(filtered_sentences, json_file_path)
+    
+    # Загружаем отфильтрованные предложения из JSON-файла
+    loaded_sentences = load_from_json(json_file_path)
+    if loaded_sentences is None:
+        return  # Завершаем программу, если не удалось загрузить файл
+    
+    # Валидируем загруженные данные
+    if not validate_json(loaded_sentences, schema):
+        return  # Завершаем программу, если данные невалидны
 
-        elif command == 'help':
-            # Вывести справку о работе с программой.
-            print("Список команд:\n")
-            print("add - добавить поезд;")
-            print("list - вывести список поездов;")
-            print("select <станция> - запросить поезда направляющиеся в пункт;")
-            print("help - отобразить справку;")
-            print("load <имя файла> - загрузить данные из файла;")
-            print("save <имя файла> - сохранить данные в файл;")
-            print("exit - завершить работу с программой.")
+    print("Предложения без запятых:")
+    for sentence in loaded_sentences:
+        print(sentence)
 
-        else:
-            print(f"Неизвестная команда {command}", file=sys.stderr)
-
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
